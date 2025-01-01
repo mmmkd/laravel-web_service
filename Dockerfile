@@ -1,38 +1,36 @@
+# Use a PHP image with Composer
 FROM php:8.1-fpm
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
-    curl \
-    zip \
-    unzip \
-    git \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    git \
+    curl && \
+    docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy project files to the container
+# Copy project files
 COPY . .
 
-# Install Laravel dependencies
-RUN composer install --optimize-autoloader --no-dev
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Expose port 80 to allow HTTP traffic
+# Generate application key
+RUN php artisan key:generate
+
+# Expose the port Laravel will run on
 EXPOSE 80
 
-# Start the Laravel development server
+# Start the Laravel server
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
-# Expose port 80 for the application
-EXPOSE 80
-
-# Run Laravel using Artisan serve
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=${PORT:-80}"]
-
